@@ -1,0 +1,16 @@
+# Ignore binary files
+*
+!*.*
+!*/
+*.class
+*.sm
+bin/
+*/bin/*
+!*/bin/*.jar
+*/bin/library.jar
+relative/path/to/dir/filename.extension
+relative/path/to/dir/anotherfile
+
+# Ignore other files
+.vscode
+/include
