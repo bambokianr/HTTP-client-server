@@ -14,3 +14,4 @@ relative/path/to/dir/anotherfile
 # Ignore other files
 .vscode
 /include
+/temp

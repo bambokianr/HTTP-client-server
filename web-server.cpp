@@ -10,7 +10,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <stdlib.h>
+
+#include "HTTPReq.cpp"
 #include "HTTPRes.cpp"
+
+using namespace std; 
 
 string convertURLtoIP(char* host) {
   struct addrinfo hints;
@@ -35,6 +40,25 @@ string convertURLtoIP(char* host) {
   freeaddrinfo(res); // libera a memoria alocada dinamicamente para "res"
 
   return ipstr;
+}
+
+void manipulateFile(const char* fileName, HTTPRes &response) {
+  stringstream ss;
+  FILE *file;
+  
+  ss << "./temp/" << fileName;
+  const char* filePath = ss.str().c_str();
+  
+  file = fopen(filePath, "r");
+  if (file == NULL) {
+    response.setStatus("404 Not Found");
+    // return; 
+  } else {
+    //? buscar o content de dentro do arquivo
+    response.setStatus("200 OK");
+  }
+
+  response.buildMessage("");
 }
 
 int main(int argc, char *argv[]) { 
@@ -89,38 +113,32 @@ int main(int argc, char *argv[]) {
   cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
 
 
+  HTTPRes response;
+  HTTPReq request;
 
-  bool isEnd = false;
   char buf[1024] = {0};
   stringstream ss;
+  memset(buf, '\0', sizeof(buf));
 
-  while (!isEnd) {
-    memset(buf, '\0', sizeof(buf));
+  if (recv(clientSockfd, buf, 1024, 0) == -1) {
+    perror("recv");
+    return -1;
+  }
 
-    if (recv(clientSockfd, buf, 1024, 0) == -1) {
-      perror("recv");
-      return -1;
-    }
+  ss << buf << endl;
+  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
 
-    ss << buf << endl;
-    cout << ss.str() << endl;
-    // cout << buf << endl;
+  request.parseMessage(ss.str());
 
-    //! envia a mensagem HTTP de resposta
-    if (send(clientSockfd, buf, 1024, 0) == -1) {
-      perror("send");
-      return -1;
-    }
+  manipulateFile(request.path.c_str(), response);
 
-    ss.str("");
+  // if (send(clientSockfd, buf, 1024, 0) == -1) {
+  if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+    perror("send");
+    return -1;
   }
 
   close(clientSockfd);
-
-
-  // HTTPRes response;
-  // response.setStatus(200);
-  // cout << response.status << endl;
 
   return 0;
 }

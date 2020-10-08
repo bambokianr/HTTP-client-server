@@ -13,7 +13,8 @@ class HTTPRes {
 
     HTTPRes();
     
-    void setStatus(int statusCode);
+    void setStatus(string value);
+    void buildMessage(string content);
 };
 
 HTTPRes::HTTPRes() {
@@ -21,8 +22,14 @@ HTTPRes::HTTPRes() {
   status = "";
 }
 
-void HTTPRes::setStatus(int statusCode) {
-  cout << "statusCode " << statusCode << endl;
+void HTTPRes::setStatus(string value) {
+  status = value;
+}
+
+void HTTPRes::buildMessage(string content) {
+  // ! without content yet
+  string responseLine = "HTTP/1.1 " + status + " \r\n";
+  message = responseLine + "\r\n";
 }
 
 #endif 

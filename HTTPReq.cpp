@@ -19,13 +19,18 @@ using namespace std;
 class HTTPReq {
   public:
     string message;
+    const uint8_t *bytecode;
+    // vector<uint8_t> *bytecode;
     string host;
     string path;
 
     HTTPReq();
     
-    void parseClientURL(string clientURL);
-    void buildMessage(string method, string path, string host);
+    void parseMessage(string clientMessage);
+    void parseURL(string url);
+    void buildMessage(string method, string url);
+    void encodeMessage(string message);
+    void decodeMessage(const uint8_t *bytecode);
 };
 
 HTTPReq::HTTPReq() {
@@ -34,16 +39,34 @@ HTTPReq::HTTPReq() {
   path = "";
 }
 
-void HTTPReq::parseClientURL(string clientURL) {
-  // ! separar a URL em host e path
-  // ! verificar se o path é / -> gerar path /index.html
-  cout << "parseClientURL: " << clientURL << endl;
+void HTTPReq::parseMessage(string clientMessage) {
+  path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
+  if(path == "/") path = "/index.html";
+
+  string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
+  host = completeAddress.substr(0, completeAddress.find(":"));
 }
 
-void HTTPReq::buildMessage(string method, string path, string host) {
+void HTTPReq::parseURL(string url) {
+  host = url.substr(0, url.find("/"));
+  path = url.substr(url.find("/"));
+}
+
+void HTTPReq::buildMessage(string method, string url) {
+  parseURL(url);
   string requestLine = method + " " + path + " HTTP/1.1\r\n";
   string headerLine = "Host: " + host + "\r\n";
   message = requestLine + headerLine + "\r\n";
+}
+
+void HTTPReq::encodeMessage(string message) {
+  bytecode = reinterpret_cast<const uint8_t*>(message.c_str());
+  cout << "bytecode " << bytecode << endl;
+}
+
+void HTTPReq::decodeMessage(const uint8_t *bytecode) {
+  message.assign(bytecode, bytecode + sizeof(bytecode));
+  cout << "message " << message << endl;
 }
 
 #endif 
