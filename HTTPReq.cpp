@@ -78,13 +78,9 @@ void HTTPReq::parseURL(string url) {
             hostname = token;
         }
         else {
-            cout << token << endl;
             port = token.substr(0, token.find('/'));
-            cout << port << endl;
             if (token.size() > port.size())
                 object_path = token.substr(token.find('/'), token.size() - port.size());
-
-            cout << object_path << endl;
         }
     }
 
