@@ -45,11 +45,18 @@ string convertURLtoIP(char* host) {
 void manipulateFile(const char* fileName, HTTPRes &response) {
   stringstream ss;
   FILE *file;
+  unsigned long file_size;
+  char *buffer;
+  size_t result;
 
-  ss << "./temp/" << fileName;
-  const char* filePath = ss.str().c_str();
+  ss << "./temp" << fileName;
+  //const char* filePath = ss.str().c_str();
 
-  file = fopen(filePath, "r");
+  file = fopen(ss.str().c_str(), "r");
+  fseek(file,0,SEEK_END);
+  file_size = ftell(file);
+  rewind(file);
+
   if (file == NULL) {
     response.setStatus("404 Not Found");
     // return;
@@ -58,10 +65,23 @@ void manipulateFile(const char* fileName, HTTPRes &response) {
     response.setStatus("200 OK");
   }
 
-  response.buildMessage("");
+  // allocate memory to contain the whole file:
+  buffer = (char*) malloc (sizeof(char)*file_size);
+  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+
+  // copy the file into the buffer:
+  result = fread (buffer,1,file_size,file);
+  if (result != file_size) {fputs ("Reading error",stderr); exit (3);}
+
+  response.buildMessage(buffer, file_size);
+
+  fclose (file);
+  free (buffer);
 }
 
 int main(int argc, char *argv[]) {
+
+
   if (argc != 4) {
     cerr << "WRONG USAGE" << endl;
     cerr << "please, run './web-server [host] [port] [dir]'" << endl;
@@ -112,10 +132,6 @@ int main(int argc, char *argv[]) {
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
   cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
 
-
-
-
-  bool isEnd = false;
   char buf[1024] = {0};
   stringstream ss;
 
