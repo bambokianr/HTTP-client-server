@@ -48,7 +48,7 @@ char* showIP(char *url) {
     return IP;
   }
 
-  std::cout << "IP addresses for " << url << ": " << std::endl;
+  std::cout << "IP addresses for " << url << ": ";
 
   for(struct addrinfo* p = res; p != 0; p = p->ai_next) {
     // a estrutura de dados eh generica e portanto precisa de type cast
@@ -57,7 +57,7 @@ char* showIP(char *url) {
     // e depois eh preciso realizar a conversao do endereco IP para string
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
     inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
-    std::cout << "  " << ipstr << std::endl;
+    std::cout << ipstr << std::endl;
 
     freeaddrinfo(res); // libera a memoria alocada dinamicamente para "res"
     strcpy(IP, ipstr);
@@ -125,11 +125,14 @@ int main(int argc, char *argv[]) {
 
   // for (int i = 1; i < argc; ++i)
   //   cout << argv[i] << endl;
-  string url = argv[1];
+  //string url = argv[1];
 
-  URL url_parse;
-  url_parse = URLparse(url);
-  if (!url_parse.valid) {
+  HTTPReq request;
+
+  //URL url_parse;
+  //url_parse = URLparse(argv[1]);
+  request.parseURL(argv[1]);
+  if (!request.isValid()) {
     cerr << "WRONG URL" << endl;
     cerr << "please, give <protocol>://<hostname>:<port>/<object> ...'" << endl;
     return -1;
@@ -140,8 +143,8 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in serverAddr;
   serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(stoi(url_parse.port)); //! estática??
-  serverAddr.sin_addr.s_addr = inet_addr(showIP(string2charStar(url_parse.hostname))); //! estática??
+  serverAddr.sin_port = htons(stoi(request.getPort())); //! estática??
+  serverAddr.sin_addr.s_addr = inet_addr(showIP(string2charStar(request.getHostname()))); //! estática??
   memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
   if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
@@ -161,12 +164,13 @@ int main(int argc, char *argv[]) {
   std::cout << "Configurar uma conexão a partir de " << ipstr << ":" << ntohs(clientAddr.sin_port) << std::endl;
 
 
-  HTTPReq request;
   HTTPRes response;
 
   char buf[1024] = {0};
   memset(buf, '\0', sizeof(buf));
-  request.buildMessage("GET", url);
+  request.buildMessage("GET");
+
+  cout << "\n\nREQUEST ENVIADA: \n" << request.message << endl;
 
   if (send(sockfd, request.message.c_str(), request.message.size(), 0) == -1) {
     perror("send");
@@ -178,7 +182,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  cout << "RESPOSTA DO SERVIDOR: " << buf << endl;
+  cout << "\n\nRESPOSTA DO SERVIDOR: \n" << buf << endl;
   close(sockfd);
 
   return 0;

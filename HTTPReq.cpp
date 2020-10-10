@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -21,41 +22,82 @@ class HTTPReq {
     string message;
     const uint8_t *bytecode;
     // vector<uint8_t> *bytecode;
-    string host;
-    string path;
 
     HTTPReq();
-    
-    void parseMessage(string clientMessage);
+
+    //void parseMessage(string clientMessage);
     void parseURL(string url);
-    void buildMessage(string method, string url);
+    void buildMessage(string method);
     void encodeMessage(string message);
     void decodeMessage(const uint8_t *bytecode);
+
+    string getProtocol();
+    string getHostname();
+    string getPort();
+    string getObjectPath();
+    bool isValid();
+
+  private:
+    string protocol;
+    string hostname;
+    string port;
+    string object_path;
+    bool valid;
 };
 
 HTTPReq::HTTPReq() {
   message = "";
-  host = "";
-  path = "";
+  protocol = "";
+  hostname = "";
+  port = "";
+  object_path = "";
+  valid = true;
 }
 
-void HTTPReq::parseMessage(string clientMessage) {
-  path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
-  if(path == "/") path = "/index.html";
+//void HTTPReq::parseMessage(string clientMessage) {
+//  object_path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
+//  if(object_path == "/") object_path = "/index.html";
 
-  string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
-  host = completeAddress.substr(0, completeAddress.find(":"));
-}
+//  string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
+//  hostname = completeAddress.substr(0, completeAddress.find(":"));
+//}
 
 void HTTPReq::parseURL(string url) {
-  host = url.substr(0, url.find("/"));
-  path = url.substr(url.find("/"));
+    string token;
+    //URL url_parse;
+
+    stringstream ss_url(url);
+    while (getline(ss_url, token, ':')) {
+        if (token == "http" || token == "https")
+            protocol = token;
+        else if (token[0] == '/' && token[1] == '/') {
+            if (token.size() > 1) {
+                token.erase(0, 1);
+                token.erase(0, 1);
+            }
+            hostname = token;
+        }
+        else {
+            cout << token << endl;
+            port = token.substr(0, token.find('/'));
+            cout << port << endl;
+            if (token.size() > port.size())
+                object_path = token.substr(token.find('/'), token.size() - port.size());
+
+            cout << object_path << endl;
+        }
+    }
+
+    if (protocol == "" || hostname == "" || port == "")
+        valid = false;
+    if (object_path == "/")
+        object_path = "/index.html";
 }
 
-void HTTPReq::buildMessage(string method, string url) {
-  parseURL(url);
-  string requestLine = method + " " + path + " HTTP/1.1\r\n";
-  string headerLine = "Host: " + host + "\r\n";
+void HTTPReq::buildMessage(string method) {
+  //parseURL(url);
+  string requestLine = method + " " + object_path + " HTTP/1.1\r\n";
+  string headerLine = "Host: " + hostname + "\r\n";
   message = requestLine + headerLine + "\r\n";
 }
 
@@ -69,4 +111,24 @@ void HTTPReq::decodeMessage(const uint8_t *bytecode) {
   cout << "message " << message << endl;
 }
 
-#endif 
+string HTTPReq::getProtocol() {
+    return protocol;
+}
+
+string HTTPReq::getHostname() {
+    return hostname;
+}
+
+string HTTPReq::getPort() {
+    return port;
+}
+
+string HTTPReq::getObjectPath() {
+    return object_path;
+}
+
+bool HTTPReq::isValid() {
+    return valid;
+}
+
+#endif
