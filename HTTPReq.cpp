@@ -25,7 +25,7 @@ class HTTPReq {
 
     HTTPReq();
 
-    //void parseMessage(string clientMessage);
+    void parseMessage(string clientMessage);
     void parseURL(string url);
     void buildMessage(string method);
     void encodeMessage(string message);
@@ -54,13 +54,13 @@ HTTPReq::HTTPReq() {
   valid = true;
 }
 
-//void HTTPReq::parseMessage(string clientMessage) {
-//  object_path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
-//  if(object_path == "/") object_path = "/index.html";
+void HTTPReq::parseMessage(string clientMessage) {
+  object_path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
+  if(object_path == "/") object_path = "/index.html";
 
-//  string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
-//  hostname = completeAddress.substr(0, completeAddress.find(":"));
-//}
+  string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
+  hostname = completeAddress.substr(0, completeAddress.find(":"));
+}
 
 void HTTPReq::parseURL(string url) {
     string token;

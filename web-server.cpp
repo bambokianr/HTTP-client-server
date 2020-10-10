@@ -15,7 +15,7 @@
 #include "HTTPReq.cpp"
 #include "HTTPRes.cpp"
 
-using namespace std; 
+using namespace std;
 
 string convertURLtoIP(char* host) {
   struct addrinfo hints;
@@ -29,7 +29,7 @@ string convertURLtoIP(char* host) {
   if ((status = getaddrinfo(host, "80", &hints, &res)) != 0) {
     cerr << "getaddrinfo: " << gai_strerror(status) << endl;
     return "error";
-  } 
+  }
 
   char ipstr[INET_ADDRSTRLEN] = {'\0'};
   for(struct addrinfo* p = res; p != 0; p = p->ai_next) {
@@ -45,14 +45,14 @@ string convertURLtoIP(char* host) {
 void manipulateFile(const char* fileName, HTTPRes &response) {
   stringstream ss;
   FILE *file;
-  
+
   ss << "./temp/" << fileName;
   const char* filePath = ss.str().c_str();
-  
+
   file = fopen(filePath, "r");
   if (file == NULL) {
     response.setStatus("404 Not Found");
-    // return; 
+    // return;
   } else {
     //? buscar o content de dentro do arquivo
     response.setStatus("200 OK");
@@ -61,7 +61,7 @@ void manipulateFile(const char* fileName, HTTPRes &response) {
   response.buildMessage("");
 }
 
-int main(int argc, char *argv[]) { 
+int main(int argc, char *argv[]) {
   if (argc != 4) {
     cerr << "WRONG USAGE" << endl;
     cerr << "please, run './web-server [host] [port] [dir]'" << endl;
@@ -113,30 +113,37 @@ int main(int argc, char *argv[]) {
   cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
 
 
-  HTTPRes response;
-  HTTPReq request;
 
+
+  bool isEnd = false;
   char buf[1024] = {0};
   stringstream ss;
-  memset(buf, '\0', sizeof(buf));
 
-  if (recv(clientSockfd, buf, 1024, 0) == -1) {
-    perror("recv");
-    return -1;
-  }
 
-  ss << buf << endl;
-  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
+    HTTPRes response;
+    HTTPReq request;
 
-  request.parseMessage(ss.str());
+    memset(buf, '\0', sizeof(buf));
 
-  manipulateFile(request.path.c_str(), response);
+    if (recv(clientSockfd, buf, 1024, 0) == -1) {
+      perror("recv");
+      return -1;
+    }
 
-  // if (send(clientSockfd, buf, 1024, 0) == -1) {
-  if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
-    perror("send");
-    return -1;
-  }
+    ss << buf << endl;
+    cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
+
+    request.parseMessage(ss.str());
+
+    manipulateFile(request.getObjectPath().c_str(), response);
+
+    // if (send(clientSockfd, buf, 1024, 0) == -1) {
+    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+      perror("send");
+      return -1;
+    }
+
+
 
   close(clientSockfd);
 

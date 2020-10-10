@@ -15,15 +15,7 @@
 
 using namespace std;
 
-struct URL {
-  string protocol;
-  string hostname;
-  string port;
-  string object;
-  bool valid;
-};
-
-char* showIP(char *url) {
+char* showIP(const char *url) {
   char* IP = new char[20];
 
   struct addrinfo hints;
@@ -69,53 +61,6 @@ char* showIP(char *url) {
   return IP;
 }
 
-URL URLparse(string url) {
-    string token;
-    URL url_parse;
-    url_parse.valid = true;
-
-    stringstream ss_url(url);
-    while (getline(ss_url, token, ':')) {
-        if (token == "http" || token == "https")
-            url_parse.protocol = token;
-        else if (token[0] == '/' && token[1] == '/') {
-            if (token.size() > 1) {
-                token.erase(0, 1);
-                token.erase(0, 1);
-            }
-            url_parse.hostname = token;
-        }
-        else {
-            url_parse.port = token.substr(0, url.find('/') - 1);
-            if (token.size() > url_parse.port.size())
-                url_parse.object = token.substr(url.find('/'), token.size() - url_parse.port.size() - 1);
-        }
-    }
-
-    if (url_parse.protocol == "" || url_parse.hostname == "" || url_parse.port == "")
-        url_parse.valid = false;
-    if (url_parse.object == "")
-        url_parse.object = "index.html";
-
-    //cout << url_parse.protocol << endl;
-    //cout << url_parse.hostname << endl;
-    //cout << url_parse.port << endl;
-    //cout << url_parse.object << endl;
-    //cout << url_parse.valid << endl;
-    return url_parse;
-}
-
-char* string2charStar(string input) {
-    char *output = new char[input.size()];
-
-    for (unsigned int i = 0; i < input.size(); i++) {
-        output[i] = input[i];
-    }
-
-    return output;
-}
-
-
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     cerr << "WRONG USAGE" << endl;
@@ -144,7 +89,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in serverAddr;
   serverAddr.sin_family = AF_INET;
   serverAddr.sin_port = htons(stoi(request.getPort())); //! estática??
-  serverAddr.sin_addr.s_addr = inet_addr(showIP(string2charStar(request.getHostname()))); //! estática??
+  serverAddr.sin_addr.s_addr = inet_addr(showIP(request.getHostname().c_str())); //! estática??
   memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
   if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
