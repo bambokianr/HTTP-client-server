@@ -61,6 +61,20 @@ char* showIP(const char *url) {
   return IP;
 }
 
+void storeResponse(const char* file_path, HTTPRes &response) {
+  stringstream ss;
+  FILE *file;
+
+  ss << "." << file_path;
+
+  file = fopen(ss.str().c_str(), "w");
+  char buffer[response.getObjectContent().size()];
+  strcpy(buffer, response.getObjectContent().c_str());
+  fwrite (buffer, sizeof(char), sizeof(buffer), file);
+
+  fclose (file);
+}
+
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     cerr << "WRONG USAGE" << endl;
@@ -128,6 +142,12 @@ int main(int argc, char *argv[]) {
   }
 
   cout << "\n\nRESPOSTA DO SERVIDOR: \n" << buf << endl;
+  response.parseMessage(buf);
+  if (response.getObjectStatus() == "200 OK") {
+    cout << "Status ok" << endl;
+    storeResponse(request.getObjectPath().c_str(), response);
+  }
+
   close(sockfd);
 
   return 0;

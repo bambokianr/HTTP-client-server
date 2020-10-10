@@ -45,7 +45,7 @@ string convertURLtoIP(char* host) {
 void manipulateFile(const char* fileName, HTTPRes &response) {
   stringstream ss;
   FILE *file;
-  unsigned long file_size;
+  unsigned int file_size;
   char *buffer;
   size_t result;
 
