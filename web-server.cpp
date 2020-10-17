@@ -9,6 +9,8 @@
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
+#include <thread>
+#include <chrono>
 
 #include "HTTPReq.cpp"
 #include "HTTPRes.cpp"
@@ -40,14 +42,16 @@ string convertURLtoIP(char* host) {
   return ipstr;
 }
 
-void manipulateFile(string dirName, const char* fileName, HTTPRes &response) {
+void manipulateFile(const char* fileName, HTTPRes &response, string dir) {
   stringstream ss;
   FILE *file;
   unsigned int file_size;
   unsigned char *buffer;
   size_t result;
 
-  ss << "." << dirName << fileName;
+  string fullDir = "." + dir;
+
+  ss << fullDir << fileName;
 
   file = fopen(ss.str().c_str(), "rb");
 
@@ -74,7 +78,58 @@ void manipulateFile(string dirName, const char* fileName, HTTPRes &response) {
   free(buffer);
 }
 
+void compute_thread(int thread_id, int clientSockfd, struct sockaddr_in clientAddr, string dir) {
+  if (clientSockfd == -1) {
+    perror("accept");
+    return;
+  }
+
+  char ipstr[INET_ADDRSTRLEN] = {'\0'};
+  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
+  cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
+
+  char buf[1024] = {0};
+  stringstream ss;
+
+  HTTPRes response;
+  HTTPReq request;
+
+  memset(buf, '\0', sizeof(buf));
+
+  if (recv(clientSockfd, buf, 1024, 0) == -1) {
+    perror("recv");
+    return;
+  }
+
+  ss << buf << endl;
+
+  if(ss.str().length() > 1){
+    cout << ss.str().length() << endl;
+
+    cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
+
+    request.parseMessage(ss.str());
+
+    if(!request.isValid()) {
+      response.setStatus("400 Bad Request");
+      response.buildMessage("", 0);
+    } else manipulateFile(request.getObjectPath().c_str(), response, dir);
+
+    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+      perror("send");
+      return;
+    }
+
+    close(clientSockfd);
+
+  }
+
+  return;
+
+}
+
 int main(int argc, char *argv[]) {
+// int main(){
   if (argc != 4) {
     cerr << "WRONG USAGE" << endl;
     cerr << "please, run './web-server [host] [port] [dir]'" << endl;
@@ -84,6 +139,16 @@ int main(int argc, char *argv[]) {
   char* host = argv[1];
   int port = stoi(argv[2]);
   string dir = argv[3];
+
+  // char* host = "localhost";
+
+  // int port;
+  // cout << "Please enter a port number: ";
+  // cin >> port;
+
+  // string dir;
+  // cout << "Please enter a dir: ";
+  // cin >> dir;
 
   string IPaddress = convertURLtoIP(host);
 
@@ -110,48 +175,16 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  struct sockaddr_in clientAddr;
-  socklen_t clientAddrSize = sizeof(clientAddr);
-  int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
+  int thread_id = 0;
+  while (true)
+  {
+    thread_id += 1;
+    struct sockaddr_in clientAddr;
+    socklen_t clientAddrSize = sizeof(clientAddr);
+    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize); // Aguarda uma requisição
 
-  if (clientSockfd == -1) {
-    perror("accept");
-    return -1;
+    thread(compute_thread, thread_id, clientSockfd, clientAddr, dir).detach();
+
   }
-
-  char ipstr[INET_ADDRSTRLEN] = {'\0'};
-  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
-  cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
-
-  unsigned char buf[1048576] = {0};
-  stringstream ss;
-
-  HTTPRes response;
-  HTTPReq request;
-
-  memset(buf, '\0', sizeof(buf));
-
-  if (recv(clientSockfd, buf, 1048576, 0) == -1) {
-    perror("recv");
-    return -1;
-  }
-
-  ss << buf << endl;
-  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
-
-  request.parseMessage(ss.str());
-
-  if(!request.isValid()) {
-    response.setStatus("400 Bad Request");
-    response.buildMessage((unsigned char*)"", 0);
-  } else manipulateFile(dir, request.getObjectPath().c_str(), response);
-
-  if (send(clientSockfd, response.message_array, 1048576, 0) == -1) {
-    perror("send");
-    return -1;
-  }
-
-  close(clientSockfd);
-
   return 0;
 }
