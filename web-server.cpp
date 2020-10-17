@@ -40,14 +40,14 @@ string convertURLtoIP(char* host) {
   return ipstr;
 }
 
-void manipulateFile(const char* fileName, HTTPRes &response) {
+void manipulateFile(const char* fileName, HTTPRes &response, string dir) {
   stringstream ss;
   FILE *file;
   unsigned int file_size;
   char *buffer;
   size_t result;
 
-  ss << "./temp" << fileName;
+  ss << dir << fileName;
 
   file = fopen(ss.str().c_str(), "r");
 
@@ -154,7 +154,7 @@ int main() {
   if(!request.isValid()) {
     response.setStatus("400 Bad Request");
     response.buildMessage("", 0);
-  } else manipulateFile(request.getObjectPath().c_str(), response);
+  } else manipulateFile(request.getObjectPath().c_str(), response, dir);
 
   if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
     perror("send");
