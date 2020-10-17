@@ -76,7 +76,8 @@ void manipulateFile(const char* fileName, HTTPRes &response, string dir) {
   free(buffer);
 }
 
-int main() {
+// int main(int argc, char *argv[]) {
+int main(){
   // if (argc != 4) {
   //   cerr << "WRONG USAGE" << endl;
   //   cerr << "please, run './web-server [host] [port] [dir]'" << endl;
@@ -122,48 +123,51 @@ int main() {
     return -1;
   }
 
-  struct sockaddr_in clientAddr;
-  socklen_t clientAddrSize = sizeof(clientAddr);
-  int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
+  while (true)
+  {
+    struct sockaddr_in clientAddr;
+    socklen_t clientAddrSize = sizeof(clientAddr);
+    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
 
-  if (clientSockfd == -1) {
-    perror("accept");
-    return -1;
+    if (clientSockfd == -1) {
+      perror("accept");
+      return -1;
+    }
+
+    char ipstr[INET_ADDRSTRLEN] = {'\0'};
+    inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
+    cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
+
+    char buf[1024] = {0};
+    stringstream ss;
+
+    HTTPRes response;
+    HTTPReq request;
+
+    memset(buf, '\0', sizeof(buf));
+
+    if (recv(clientSockfd, buf, 1024, 0) == -1) {
+      perror("recv");
+      return -1;
+    }
+
+    ss << buf << endl;
+    cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
+
+    request.parseMessage(ss.str());
+
+    if(!request.isValid()) {
+      response.setStatus("400 Bad Request");
+      response.buildMessage("", 0);
+    } else manipulateFile(request.getObjectPath().c_str(), response, dir);
+
+    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+      perror("send");
+      return -1;
+    }
+
+    close(clientSockfd);
+
   }
-
-  char ipstr[INET_ADDRSTRLEN] = {'\0'};
-  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
-  cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
-
-  char buf[1024] = {0};
-  stringstream ss;
-
-  HTTPRes response;
-  HTTPReq request;
-
-  memset(buf, '\0', sizeof(buf));
-
-  if (recv(clientSockfd, buf, 1024, 0) == -1) {
-    perror("recv");
-    return -1;
-  }
-
-  ss << buf << endl;
-  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
-
-  request.parseMessage(ss.str());
-
-  if(!request.isValid()) {
-    response.setStatus("400 Bad Request");
-    response.buildMessage("", 0);
-  } else manipulateFile(request.getObjectPath().c_str(), response, dir);
-
-  if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
-    perror("send");
-    return -1;
-  }
-
-  close(clientSockfd);
-
   return 0;
 }
