@@ -74,16 +74,26 @@ void manipulateFile(const char* fileName, HTTPRes &response) {
   free(buffer);
 }
 
-int main(int argc, char *argv[]) {
-  if (argc != 4) {
-    cerr << "WRONG USAGE" << endl;
-    cerr << "please, run './web-server [host] [port] [dir]'" << endl;
-    return -1;
-  }
+int main() {
+  // if (argc != 4) {
+  //   cerr << "WRONG USAGE" << endl;
+  //   cerr << "please, run './web-server [host] [port] [dir]'" << endl;
+  //   return -1;
+  // }
 
-  char* host = argv[1];
-  int port = stoi(argv[2]);
-  string dir = argv[3];
+  // char* host = argv[1];
+  // int port = stoi(argv[2]);
+  // string dir = argv[3];
+
+  char* host = "localhost";
+
+  int port;
+  cout << "Please enter a port number: ";
+  cin >> port;
+
+  string dir;
+  cout << "Please enter a dir: ";
+  cin >> dir;
 
   string IPaddress = convertURLtoIP(host);
 
