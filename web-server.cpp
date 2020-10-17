@@ -112,10 +112,10 @@ void compute_thread(int thread_id, int clientSockfd, struct sockaddr_in clientAd
 
     if(!request.isValid()) {
       response.setStatus("400 Bad Request");
-      response.buildMessage("", 0);
+      response.buildMessage((unsigned char*)"", 0);
     } else manipulateFile(request.getObjectPath().c_str(), response, dir);
 
-    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+    if (send(clientSockfd, response.message_array, 1048576, 0) == -1) {
       perror("send");
       return;
     }
