@@ -142,9 +142,8 @@ int main(int argc, char *argv[]) {
   }
 
   cout << "\n\nRESPOSTA DO SERVIDOR: \n" << buf << endl;
+  response.parseMessage(buf);
   if (response.getObjectStatus() == "200 OK") {
-    response.parseMessage(buf);
-    cout << "Status ok" << endl;
     storeResponse(request.getObjectPath().c_str(), response);
   }
 
