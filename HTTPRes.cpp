@@ -16,10 +16,9 @@ class HTTPRes {
 
     void setStatus(string value);
     void buildMessage(string content, int file_size);
-
+    void parseMessage(string serverMessage);
     string getObjectStatus();
     string getObjectContent();
-    void parseMessage(string serverMessage);
 
   private:
     string object_status;
@@ -52,8 +51,6 @@ void HTTPRes::buildMessage(string content, int file_size) {
   }
 }
 
-
-
 string HTTPRes::getObjectStatus() {
     return object_status;
 }
@@ -67,12 +64,6 @@ void HTTPRes::parseMessage(string serverMessage) {
   //object_name = serverMessage.substr(serverMessage.find("Host: ")+6, serverMessage.find("\r\n")-4);
   object_length = serverMessage.substr(serverMessage.find("Content-Length: ")+16, serverMessage.find("\r\n\r\n")-serverMessage.find("Content-Length: ")-16);
   object_content = serverMessage.substr(serverMessage.find("\r\n\r\n")+4, stoi(object_length)-1);
-
-
-  //if(object_path == "/") object_path = "/index.html";
-
-  //string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
-  //hostname = completeAddress.substr(0, completeAddress.find(":"));
 }
 
 string HTTPRes::getTime() {
