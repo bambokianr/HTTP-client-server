@@ -9,6 +9,8 @@
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
+#include <thread>
+#include <chrono>
 
 #include "HTTPReq.cpp"
 #include "HTTPRes.cpp"
@@ -76,27 +78,71 @@ void manipulateFile(const char* fileName, HTTPRes &response, string dir) {
   free(buffer);
 }
 
-// int main(int argc, char *argv[]) {
-int main(){
-  // if (argc != 4) {
-  //   cerr << "WRONG USAGE" << endl;
-  //   cerr << "please, run './web-server [host] [port] [dir]'" << endl;
-  //   return -1;
-  // }
+void compute_thread(int thread_id, int clientSockfd, struct sockaddr_in clientAddr, string dir) {
+  if (clientSockfd == -1) {
+    perror("accept");
+    return;
+  }
 
-  // char* host = argv[1];
-  // int port = stoi(argv[2]);
-  // string dir = argv[3];
+  char ipstr[INET_ADDRSTRLEN] = {'\0'};
+  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
+  cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
 
-  char* host = "localhost";
+  char buf[1024] = {0};
+  stringstream ss;
 
-  int port;
-  cout << "Please enter a port number: ";
-  cin >> port;
+  HTTPRes response;
+  HTTPReq request;
 
-  string dir;
-  cout << "Please enter a dir: ";
-  cin >> dir;
+  memset(buf, '\0', sizeof(buf));
+
+  if (recv(clientSockfd, buf, 1024, 0) == -1) {
+    perror("recv");
+    return;
+  }
+
+  ss << buf << endl;
+  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
+
+  request.parseMessage(ss.str());
+
+  if(!request.isValid()) {
+    response.setStatus("400 Bad Request");
+    response.buildMessage("", 0);
+  } else manipulateFile(request.getObjectPath().c_str(), response, dir);
+
+  if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+    perror("send");
+    return;
+  }
+
+  close(clientSockfd);
+
+  return;
+
+}
+
+int main(int argc, char *argv[]) {
+// int main(){
+  if (argc != 4) {
+    cerr << "WRONG USAGE" << endl;
+    cerr << "please, run './web-server [host] [port] [dir]'" << endl;
+    return -1;
+  }
+
+  char* host = argv[1];
+  int port = stoi(argv[2]);
+  string dir = argv[3];
+
+  // char* host = "localhost";
+
+  // int port;
+  // cout << "Please enter a port number: ";
+  // cin >> port;
+
+  // string dir;
+  // cout << "Please enter a dir: ";
+  // cin >> dir;
 
   string IPaddress = convertURLtoIP(host);
 
@@ -123,50 +169,15 @@ int main(){
     return -1;
   }
 
+  int thread_id = 0;
   while (true)
   {
+    thread_id += 1;
     struct sockaddr_in clientAddr;
     socklen_t clientAddrSize = sizeof(clientAddr);
-    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
+    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize); // Aguarda uma requisição
 
-    if (clientSockfd == -1) {
-      perror("accept");
-      return -1;
-    }
-
-    char ipstr[INET_ADDRSTRLEN] = {'\0'};
-    inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
-    cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
-
-    char buf[1024] = {0};
-    stringstream ss;
-
-    HTTPRes response;
-    HTTPReq request;
-
-    memset(buf, '\0', sizeof(buf));
-
-    if (recv(clientSockfd, buf, 1024, 0) == -1) {
-      perror("recv");
-      return -1;
-    }
-
-    ss << buf << endl;
-    cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
-
-    request.parseMessage(ss.str());
-
-    if(!request.isValid()) {
-      response.setStatus("400 Bad Request");
-      response.buildMessage("", 0);
-    } else manipulateFile(request.getObjectPath().c_str(), response, dir);
-
-    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
-      perror("send");
-      return -1;
-    }
-
-    close(clientSockfd);
+    thread(compute_thread, thread_id, clientSockfd, clientAddr, dir).detach();
 
   }
   return 0;
