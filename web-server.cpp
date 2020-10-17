@@ -3,13 +3,11 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <iostream>
 #include <sstream>
-
 #include <stdlib.h>
 
 #include "HTTPReq.cpp"
@@ -21,9 +19,9 @@ string convertURLtoIP(char* host) {
   struct addrinfo hints;
   struct addrinfo* res;
 
-  memset(&hints, 0, sizeof(hints)); // limpa a struct
-  hints.ai_family = AF_INET; // IPv4
-  hints.ai_socktype = SOCK_STREAM; // TCP
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
 
   int status = 0;
   if ((status = getaddrinfo(host, "80", &hints, &res)) != 0) {
@@ -37,51 +35,46 @@ string convertURLtoIP(char* host) {
     inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
   }
 
-  freeaddrinfo(res); // libera a memoria alocada dinamicamente para "res"
+  freeaddrinfo(res);
 
   return ipstr;
 }
 
-void manipulateFile(const char* fileName, HTTPRes &response) {
+void manipulateFile(string dirName, const char* fileName, HTTPRes &response) {
   stringstream ss;
   FILE *file;
   unsigned int file_size;
-  char *buffer;
+  unsigned char *buffer;
   size_t result;
 
-  ss << "./temp" << fileName;
-  //const char* filePath = ss.str().c_str();
+  ss << "." << dirName << fileName;
 
-  file = fopen(ss.str().c_str(), "r");
-  fseek(file,0,SEEK_END);
-  file_size = ftell(file);
-  rewind(file);
+  file = fopen(ss.str().c_str(), "rb");
 
   if (file == NULL) {
     response.setStatus("404 Not Found");
-    // return;
-  } else {
-    //? buscar o content de dentro do arquivo
-    response.setStatus("200 OK");
+    response.buildMessage((unsigned char*)"", 0);
+    return;
   }
 
-  // allocate memory to contain the whole file:
-  buffer = (char*) malloc (sizeof(char)*file_size);
-  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+  fseek(file, 0, SEEK_END);
+  file_size = ftell(file);
+  rewind(file);
 
-  // copy the file into the buffer:
-  result = fread (buffer,1,file_size,file);
-  if (result != file_size) {fputs ("Reading error",stderr); exit (3);}
+  buffer = (unsigned char*)malloc(sizeof(unsigned char)*file_size);
+  if (buffer == NULL) { fputs("Memory error", stderr); exit(2); }
 
+  result = fread (buffer, sizeof(unsigned char), file_size, file);
+  if (result != file_size) { fputs("Reading error", stderr); exit(2); }
+
+  response.setStatus("200 OK");
   response.buildMessage(buffer, file_size);
 
-  fclose (file);
-  free (buffer);
+  fclose(file);
+  free(buffer);
 }
 
 int main(int argc, char *argv[]) {
-
-
   if (argc != 4) {
     cerr << "WRONG USAGE" << endl;
     cerr << "please, run './web-server [host] [port] [dir]'" << endl;
@@ -117,8 +110,6 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  //! ------------------------------------------------------------
-
   struct sockaddr_in clientAddr;
   socklen_t clientAddrSize = sizeof(clientAddr);
   int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
@@ -132,34 +123,33 @@ int main(int argc, char *argv[]) {
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
   cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
 
-  char buf[1024] = {0};
+  unsigned char buf[1048576] = {0};
   stringstream ss;
 
+  HTTPRes response;
+  HTTPReq request;
 
-    HTTPRes response;
-    HTTPReq request;
+  memset(buf, '\0', sizeof(buf));
 
-    memset(buf, '\0', sizeof(buf));
+  if (recv(clientSockfd, buf, 1048576, 0) == -1) {
+    perror("recv");
+    return -1;
+  }
 
-    if (recv(clientSockfd, buf, 1024, 0) == -1) {
-      perror("recv");
-      return -1;
-    }
+  ss << buf << endl;
+  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
 
-    ss << buf << endl;
-    cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
+  request.parseMessage(ss.str());
 
-    request.parseMessage(ss.str());
+  if(!request.isValid()) {
+    response.setStatus("400 Bad Request");
+    response.buildMessage((unsigned char*)"", 0);
+  } else manipulateFile(dir, request.getObjectPath().c_str(), response);
 
-    manipulateFile(request.getObjectPath().c_str(), response);
-
-    // if (send(clientSockfd, buf, 1024, 0) == -1) {
-    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
-      perror("send");
-      return -1;
-    }
-
-
+  if (send(clientSockfd, response.message_array, 1048576, 0) == -1) {
+    perror("send");
+    return -1;
+  }
 
   close(clientSockfd);
 

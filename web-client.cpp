@@ -21,18 +21,10 @@ char* showIP(const char *url) {
   struct addrinfo hints;
   struct addrinfo* res;
 
-  //if (argc != 2) {
-  //  std::cerr << "usage: showip hostname" << std::endl;
-  // return 1;
-  //}
-
-  // hints - modo de configurar o socket para o tipo  de transporte
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET; // IPv4
   hints.ai_socktype = SOCK_STREAM; // TCP
 
-  // funcao de obtencao do endereco via DNS - getaddrinfo
-  // funcao preenche o buffer "res" e obtem o codigo de resposta "status"
   int status = 0;
   if ((status = getaddrinfo(url, "80", &hints, &res)) != 0) {
     std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
@@ -67,10 +59,9 @@ void storeResponse(const char* file_path, HTTPRes &response) {
 
   ss << "." << file_path;
 
-  file = fopen(ss.str().c_str(), "w");
-  char buffer[response.getObjectContent().size()];
-  strcpy(buffer, response.getObjectContent().c_str());
-  fwrite (buffer, sizeof(char), sizeof(buffer), file);
+  file = fopen(ss.str().c_str(), "wb");
+
+  fwrite (response.object_content_array,  sizeof(unsigned char), stoi(response.getObjectLength()), file);
 
   fclose (file);
 }
@@ -125,7 +116,7 @@ int main(int argc, char *argv[]) {
 
   HTTPRes response;
 
-  char buf[1024] = {0};
+  unsigned char buf[1048576] = {0};
   memset(buf, '\0', sizeof(buf));
   request.buildMessage("GET");
 
@@ -136,15 +127,15 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  if (recv(sockfd, buf, 1024, 0) == -1) {
+  if (recv(sockfd, buf, 1048576, 0) == -1) {
     perror("recv");
     return -1;
   }
 
   cout << "\n\nRESPOSTA DO SERVIDOR: \n" << buf << endl;
   response.parseMessage(buf);
+
   if (response.getObjectStatus() == "200 OK") {
-    cout << "Status ok" << endl;
     storeResponse(request.getObjectPath().c_str(), response);
   }
 
