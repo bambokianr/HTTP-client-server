@@ -39,10 +39,17 @@ HTTPReq::HTTPReq() {
 }
 
 void HTTPReq::parseMessage(string clientMessage) {
-  object_path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
-  if(object_path == "/") object_path = "/index.html";
-  string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
-  hostname = completeAddress.substr(0, completeAddress.find(":"));
+  if (clientMessage.find(" ")+1 == 4)
+  {
+    object_path = clientMessage.substr(clientMessage.find(" ")+1, clientMessage.find(" HTTP")-4);
+    if(object_path == "/") object_path = "/index.html";
+    string completeAddress = clientMessage.substr(clientMessage.find("Host: ")+6, message.find("\r\n")-4);
+    hostname = completeAddress.substr(0, completeAddress.find(":"));
+  }else
+  {
+    return;
+  }
+  
 }
 
 void HTTPReq::parseURL(string url) {

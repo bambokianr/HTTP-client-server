@@ -102,21 +102,27 @@ void compute_thread(int thread_id, int clientSockfd, struct sockaddr_in clientAd
   }
 
   ss << buf << endl;
-  cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
 
-  request.parseMessage(ss.str());
+  if(ss.str().length() > 1){
+    cout << ss.str().length() << endl;
 
-  if(!request.isValid()) {
-    response.setStatus("400 Bad Request");
-    response.buildMessage("", 0);
-  } else manipulateFile(request.getObjectPath().c_str(), response, dir);
+    cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
 
-  if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
-    perror("send");
-    return;
+    request.parseMessage(ss.str());
+
+    if(!request.isValid()) {
+      response.setStatus("400 Bad Request");
+      response.buildMessage("", 0);
+    } else manipulateFile(request.getObjectPath().c_str(), response, dir);
+
+    if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+      perror("send");
+      return;
+    }
+
+    close(clientSockfd);
+
   }
-
-  close(clientSockfd);
 
   return;
 
