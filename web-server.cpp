@@ -47,7 +47,9 @@ void manipulateFile(const char* fileName, HTTPRes &response, string dir) {
   char *buffer;
   size_t result;
 
-  ss << dir << fileName;
+  string fullDir = "." + dir;
+
+  ss << fullDir << fileName;
 
   file = fopen(ss.str().c_str(), "r");
 
