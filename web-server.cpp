@@ -40,31 +40,31 @@ string convertURLtoIP(char* host) {
   return ipstr;
 }
 
-void manipulateFile(const char* fileName, HTTPRes &response) {
+void manipulateFile(string dirName, const char* fileName, HTTPRes &response) {
   stringstream ss;
   FILE *file;
   unsigned int file_size;
-  char *buffer;
+  unsigned char *buffer;
   size_t result;
 
-  ss << "./temp" << fileName;
+  ss << "." << dirName << fileName;
 
-  file = fopen(ss.str().c_str(), "r");
+  file = fopen(ss.str().c_str(), "rb");
 
   if (file == NULL) {
     response.setStatus("404 Not Found");
-    response.buildMessage("", 0);
+    response.buildMessage((unsigned char*)"", 0);
     return;
-  } 
-  
+  }
+
   fseek(file, 0, SEEK_END);
   file_size = ftell(file);
   rewind(file);
 
-  buffer = (char*)malloc(sizeof(char)*file_size);
+  buffer = (unsigned char*)malloc(sizeof(unsigned char)*file_size);
   if (buffer == NULL) { fputs("Memory error", stderr); exit(2); }
 
-  result = fread (buffer, 1, file_size, file);
+  result = fread (buffer, sizeof(unsigned char), file_size, file);
   if (result != file_size) { fputs("Reading error", stderr); exit(2); }
 
   response.setStatus("200 OK");
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
   cout << "Conexão iniciada com o cliente " << ipstr << ":" << ntohs(clientAddr.sin_port) << endl << endl;
 
-  char buf[1024] = {0};
+  unsigned char buf[1048576] = {0};
   stringstream ss;
 
   HTTPRes response;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 
   memset(buf, '\0', sizeof(buf));
 
-  if (recv(clientSockfd, buf, 1024, 0) == -1) {
+  if (recv(clientSockfd, buf, 1048576, 0) == -1) {
     perror("recv");
     return -1;
   }
@@ -143,10 +143,10 @@ int main(int argc, char *argv[]) {
 
   if(!request.isValid()) {
     response.setStatus("400 Bad Request");
-    response.buildMessage("", 0);
-  } else manipulateFile(request.getObjectPath().c_str(), response);
+    response.buildMessage((unsigned char*)"", 0);
+  } else manipulateFile(dir, request.getObjectPath().c_str(), response);
 
-  if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
+  if (send(clientSockfd, response.message_array, 1048576, 0) == -1) {
     perror("send");
     return -1;
   }
