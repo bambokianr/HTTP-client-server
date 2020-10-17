@@ -141,14 +141,15 @@ int main(int argc, char *argv[]) {
 
   request.parseMessage(ss.str());
 
-  manipulateFile(request.getObjectPath().c_str(), response);
+  if(!request.isValid()) {
+    response.setStatus("400 Bad Request");
+    response.buildMessage("", 0);
+  } else manipulateFile(request.getObjectPath().c_str(), response);
 
   if (send(clientSockfd, response.message.c_str(), 1024, 0) == -1) {
     perror("send");
     return -1;
   }
-
-    
 
   close(clientSockfd);
 
