@@ -21,9 +21,9 @@ string convertURLtoIP(char* host) {
   struct addrinfo hints;
   struct addrinfo* res;
 
-  memset(&hints, 0, sizeof(hints)); // limpa a struct
-  hints.ai_family = AF_INET; // IPv4
-  hints.ai_socktype = SOCK_STREAM; // TCP
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
 
   int status = 0;
   if ((status = getaddrinfo(host, "80", &hints, &res)) != 0) {
@@ -37,7 +37,7 @@ string convertURLtoIP(char* host) {
     inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
   }
 
-  freeaddrinfo(res); // libera a memoria alocada dinamicamente para "res"
+  freeaddrinfo(res);
 
   return ipstr;
 }
@@ -50,33 +50,31 @@ void manipulateFile(const char* fileName, HTTPRes &response) {
   size_t result;
 
   ss << "./temp" << fileName;
-  //const char* filePath = ss.str().c_str();
 
   file = fopen(ss.str().c_str(), "r");
-  fseek(file,0,SEEK_END);
-  file_size = ftell(file);
-  rewind(file);
 
   if (file == NULL) {
     response.setStatus("404 Not Found");
-    // return;
-  } else {
-    //? buscar o content de dentro do arquivo
-    response.setStatus("200 OK");
-  }
+    response.buildMessage("", 0);
+    return;
+  } 
+  
+  fseek(file, 0, SEEK_END);
+  file_size = ftell(file);
+  rewind(file);
 
   // allocate memory to contain the whole file:
-  buffer = (char*) malloc (sizeof(char)*file_size);
-  if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
+  buffer = (char*)malloc(sizeof(char)*file_size);
+  if (buffer == NULL) { fputs("Memory error",stderr); exit (2); }
 
   // copy the file into the buffer:
-  result = fread (buffer,1,file_size,file);
-  if (result != file_size) {fputs ("Reading error",stderr); exit (3);}
+  result = fread (buffer, 1, file_size, file);
+  if (result != file_size) { fputs("Reading error",stderr); exit (3); }
 
+  response.setStatus("200 OK");
   response.buildMessage(buffer, file_size);
-
-  fclose (file);
-  free (buffer);
+  fclose(file);
+  free(buffer);
 }
 
 int main(int argc, char *argv[]) {

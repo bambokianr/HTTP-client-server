@@ -17,7 +17,6 @@ class HTTPRes {
     void setStatus(string value);
     void buildMessage(string content, int file_size);
 
-
     string getObjectStatus();
     string getObjectContent();
     void parseMessage(string serverMessage);
@@ -43,11 +42,14 @@ void HTTPRes::setStatus(string value) {
 }
 
 void HTTPRes::buildMessage(string content, int file_size) {
-  // ! without content yet
   string responseHeader = "HTTP/1.1 " + status + " \r\n";
-  responseHeader += "Date: " + getTime() + " \r\n";
-  responseHeader += "Content-Length: " + to_string(file_size) + " \r\n";
-  message = responseHeader + "\r\n" + content;
+  responseHeader += "Date: " + getTime();
+  if(content != "" && file_size != 0) {
+    responseHeader += "Content-Length: " + to_string(file_size) + " \r\n";
+    message = responseHeader + "\r\n" + content;
+  } else {
+    message = responseHeader + "\r\n";
+  }
 }
 
 
@@ -75,13 +77,12 @@ void HTTPRes::parseMessage(string serverMessage) {
 
 string HTTPRes::getTime() {
   time_t rawtime;
-  struct tm * timeinfo;
+  struct tm* timeinfo;
 
-  time ( &rawtime );
-  timeinfo = localtime ( &rawtime );
-  //printf ( "Data atual do sistema é: %s", asctime (timeinfo) )
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
 
-  return asctime (timeinfo);
+  return asctime(timeinfo);
 }
 
 #endif
