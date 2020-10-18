@@ -104,7 +104,6 @@ void compute_thread(int thread_id, int clientSockfd, struct sockaddr_in clientAd
   ss << buf << endl;
 
   if(ss.str().length() > 1){
-    cout << ss.str().length() << endl;
 
     cout << "REQUISIÇÃO RECEBIDA DO CLIENTE: " << endl << ss.str() << endl;
 
@@ -129,7 +128,6 @@ void compute_thread(int thread_id, int clientSockfd, struct sockaddr_in clientAd
 }
 
 int main(int argc, char *argv[]) {
-// int main(){
   if (argc != 4) {
     cerr << "WRONG USAGE" << endl;
     cerr << "please, run './web-server [host] [port] [dir]'" << endl;
@@ -139,16 +137,6 @@ int main(int argc, char *argv[]) {
   char* host = argv[1];
   int port = stoi(argv[2]);
   string dir = argv[3];
-
-  // char* host = "localhost";
-
-  // int port;
-  // cout << "Please enter a port number: ";
-  // cin >> port;
-
-  // string dir;
-  // cout << "Please enter a dir: ";
-  // cin >> dir;
 
   string IPaddress = convertURLtoIP(host);
 
